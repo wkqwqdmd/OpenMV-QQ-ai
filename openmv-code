@@ -1,0 +1,22 @@
+import sensor, time, ustruct
+from machine import UART
+sensor.reset()
+sensor.set_pixformat(sensor.RGB565)
+sensor.set_framesize(sensor.QVGA) 
+sensor.skip_frames(time=1000) 
+# P4 = TX, P5 = RX
+uart = UART(3, 115200)
+print("OpenMV 准备就绪，开始发送图片数据...")
+while True:
+    try:
+        img = sensor.snapshot()
+        # quality=50 平衡了画质和传输大小
+        jpeg = img.compress(quality=50)         
+        uart.write(b'\xAA\x55')                          # 发暗号 0xAA 0x55
+        uart.write(ustruct.pack("<L", len(jpeg)))        # 发 4 字节的长度
+        uart.write(jpeg)                                 # 发图片数据
+        print("发送图片，大小:", len(jpeg), "字节")
+        time.sleep_ms(200)        
+    except Exception as e:
+        print("发生错误:", e)
+        time.sleep_ms(1000)
